@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fireground · Install Check</title>
+<style>
+  :root{--bg:#0d0e11;--card:#171a21;--line:#262b34;--line2:#323844;--ink:#eef0f3;
+        --dim:#9aa1ad;--faint:#6b7280;--ok:#34c694;--bad:#e23b3b;--warn:#f3a73c;--hi:#c6f53a;
+        --mono:'Roboto Mono','SFMono-Regular',Consolas,ui-monospace,monospace;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;
+       font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;}
+  .wrap{max-width:580px;margin:0 auto;padding:16px 14px 48px;}
+  h1{font-size:21px;margin:0 0 3px;letter-spacing:.02em;}
+  .sub{font-family:var(--mono);font-size:11px;color:var(--faint);margin-bottom:16px;
+       word-break:break-all;}
+  .verdict{border-radius:10px;padding:13px 14px;margin-bottom:16px;font-size:14.5px;
+           border:1px solid var(--line2);background:var(--card);}
+  .verdict.pass{border-left:4px solid var(--ok);}
+  .verdict.fail{border-left:4px solid var(--bad);}
+  .verdict b{display:block;font-size:16px;margin-bottom:5px;}
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;
+          padding:11px 13px;margin-bottom:9px;}
+  section h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
+             margin:0 0 8px;font-weight:600;}
+  .row{display:flex;gap:9px;padding:5px 0;border-top:1px solid var(--line);align-items:flex-start;}
+  .row:first-of-type{border-top:0;}
+  .ic{flex:none;width:16px;font-weight:700;font-family:var(--mono);font-size:13px;}
+  .ic.ok{color:var(--ok);} .ic.bad{color:var(--bad);} .ic.warn{color:var(--warn);}
+  .k{flex:1;font-size:13.5px;}
+  .v{font-family:var(--mono);font-size:11.5px;color:var(--dim);text-align:right;
+     word-break:break-all;max-width:52%;}
+  .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  button{flex:1 1 auto;min-width:130px;border:1px solid var(--line2);background:#1d2129;
+         color:var(--ink);font-family:var(--mono);font-size:12px;padding:11px 12px;
+         border-radius:7px;cursor:pointer;}
+  button.go{border-color:rgba(198,245,58,.4);color:var(--hi);}
+  pre{background:#0a0b0e;border:1px solid var(--line);border-radius:7px;padding:10px;
+      font-family:var(--mono);font-size:10.5px;color:var(--dim);white-space:pre-wrap;
+      word-break:break-all;margin:12px 0 0;max-height:280px;overflow:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Install Check</h1>
+  <div class="sub" id="loc"></div>
+  <div class="verdict" id="verdict"><b>Running…</b></div>
+  <div id="out"></div>
+  <div class="btns">
+    <button class="go" onclick="copyReport()">Copy report</button>
+    <button onclick="location.reload()">Re-run</button>
+    <button onclick="nuke()">Reset &amp; re-register</button>
+  </div>
+  <pre id="raw"></pre>
+</div>
+<script>
+const log = [];
+const out = document.getElementById("out");
+document.getElementById("loc").textContent = location.href;
+
+function sect(title){
+  const s = document.createElement("section");
+  s.innerHTML = "<h2>"+title+"</h2>";
+  out.appendChild(s);
+  log.push("\n== "+title+" ==");
+  return s;
+}
+function row(s, state, key, val){
+  const mark = state==="ok" ? "OK" : state==="bad" ? "X" : "!";
+  const d = document.createElement("div");
+  d.className = "row";
+  d.innerHTML = '<span class="ic '+state+'">'+mark+'</span>'
+              + '<span class="k">'+key+'</span>'
+              + '<span class="v">'+(val==null?"":String(val))+'</span>';
+  s.appendChild(d);
+  log.push("["+mark.padEnd(2)+"] "+key+(val==null?"":"  ->  "+val));
+}
+
+let fatal = [];
+
+(async () => {
+  // ---------- environment ----------
+  const s0 = sect("Environment");
+  row(s0, isSecureContext?"ok":"bad", "Secure context (https)", location.protocol);
+  if(!isSecureContext) fatal.push("Not served over https — nothing else can work.");
+  const dm = matchMedia("(display-mode: standalone)").matches ? "standalone" : "browser";
+  row(s0, "ok", "Display mode", dm);
+  row(s0, "ok", "Online", navigator.onLine);
+  row(s0, "ok", "UA", navigator.userAgent.slice(0,64));
+
+  // ---------- manifest ----------
+  const s1 = sect("Manifest");
+  const link = document.querySelector('link[rel="manifest"]');
+  let manUrl = new URL("./manifest.json", location.href).href;
+  row(s1, "ok", "Checking", manUrl.replace(location.origin,""));
+  let man = null;
+  try {
+    const r = await fetch(manUrl, {cache:"no-store"});
+    const ct = r.headers.get("content-type") || "(none)";
+    row(s1, r.ok?"ok":"bad", "HTTP status", r.status);
+    if(!r.ok) fatal.push("manifest.json is not being served (HTTP "+r.status+"). It probably did not upload.");
+    const ctOk = /json|manifest/i.test(ct);
+    row(s1, ctOk?"ok":"bad", "Content-Type", ct);
+    if(r.ok && !ctOk) fatal.push("manifest served as '"+ct+"' — Chrome refuses it. Rename the file so the host sends JSON.");
+    if(r.ok){
+      man = await r.json();
+      row(s1, man.name?"ok":"bad", "name", man.name);
+      row(s1, man.start_url?"ok":"bad", "start_url", man.start_url);
+      row(s1, man.display==="standalone"?"ok":"warn", "display", man.display);
+      const sizes = (man.icons||[]).map(i=>i.sizes);
+      const has192 = sizes.some(x=>/192/.test(x)), has512 = sizes.some(x=>/512/.test(x));
+      row(s1, has192?"ok":"bad", "192px icon declared", has192);
+      row(s1, has512?"ok":"bad", "512px icon declared", has512);
+      if(!has192||!has512) fatal.push("Manifest needs both a 192px and a 512px icon to be installable.");
+    }
+  } catch(e){
+    row(s1, "bad", "Fetch failed", e.message);
+    fatal.push("Could not fetch the manifest at all: "+e.message);
+  }
+
+  // ---------- icons actually reachable ----------
+  const s2 = sect("Icon files");
+  const icons = (man && man.icons ? man.icons.map(i=>i.src)
+                : ["./icon-192.png","./icon-512.png"]);
+  let iconMiss = 0;
+  for(const src of icons){
+    try {
+      const u = new URL(src, manUrl).href;
+      const r = await fetch(u, {cache:"no-store"});
+      const ok = r.ok && /image/i.test(r.headers.get("content-type")||"");
+      if(!ok) iconMiss++;
+      row(s2, ok?"ok":"bad", src.replace("./",""), r.status+" "+(r.headers.get("content-type")||""));
+    } catch(e){ iconMiss++; row(s2,"bad",src,e.message); }
+  }
+  if(iconMiss) fatal.push(iconMiss+" icon file(s) missing — the icons/ folder likely did not upload.");
+
+  // ---------- service worker ----------
+  const s3 = sect("Service worker");
+  row(s3, ("serviceWorker" in navigator)?"ok":"bad", "API supported", ("serviceWorker" in navigator));
+  try {
+    const r = await fetch(new URL("./sw.js", location.href).href, {cache:"no-store"});
+    const ct = r.headers.get("content-type")||"(none)";
+    const ok = r.ok && /javascript/i.test(ct);
+    row(s3, ok?"ok":"bad", "sw.js served", r.status+" "+ct);
+    if(!r.ok) fatal.push("sw.js is not being served (HTTP "+r.status+") — offline cannot work.");
+  } catch(e){ row(s3,"bad","sw.js fetch",e.message); }
+
+  if("serviceWorker" in navigator){
+    const regs = await navigator.serviceWorker.getRegistrations();
+    row(s3, regs.length?"ok":"warn", "Registrations", regs.length);
+    regs.forEach(rg=>{
+      const st = (rg.active&&"active")||(rg.installing&&"installing")||(rg.waiting&&"waiting")||"none";
+      row(s3, rg.active?"ok":"warn", "· state", st);
+      row(s3, "ok", "· scope", rg.scope.replace(location.origin,""));
+    });
+    row(s3, navigator.serviceWorker.controller?"ok":"warn", "Controlling this page",
+        !!navigator.serviceWorker.controller);
+    if(regs.length && !regs.some(r=>r.active))
+      fatal.push("A service worker registered but never activated — its install step failed.");
+    if(!regs.length)
+      fatal.push("No service worker registered. Load index.html once with signal, then come back.");
+  }
+
+  // ---------- caches ----------
+  const s4 = sect("Offline cache");
+  if(!("caches" in window)){ row(s4,"bad","Cache API",false); }
+  else {
+    const keys = await caches.keys();
+    row(s4, keys.length?"ok":"bad", "Caches", keys.join(", ")||"(none)");
+    let total = 0, hasIndex = false;
+    for(const k of keys){
+      const c = await caches.open(k);
+      const ks = await c.keys();
+      total += ks.length;
+      ks.forEach(rq=>{ if(/index\.html$|\/$/.test(new URL(rq.url).pathname)) hasIndex = true; });
+    }
+    row(s4, total?"ok":"bad", "Cached entries", total);
+    row(s4, hasIndex?"ok":"bad", "Page itself cached", hasIndex);
+    if(!hasIndex) fatal.push("The page is not in the cache — airplane mode will fail.");
+  }
+
+  // ---------- verdict ----------
+  const v = document.getElementById("verdict");
+  if(fatal.length){
+    v.className = "verdict fail";
+    v.innerHTML = "<b>"+fatal.length+" problem"+(fatal.length>1?"s":"")+" found</b>"
+                + fatal.map(f=>"• "+f).join("<br>");
+    log.push("\n== VERDICT ==\n"+fatal.map(f=>"• "+f).join("\n"));
+  } else {
+    v.className = "verdict pass";
+    v.innerHTML = "<b>All checks passed</b>Go back to the app, reload it once, "
+                + "then try airplane mode. Chrome's menu should say Install app.";
+    log.push("\n== VERDICT ==\nAll checks passed.");
+  }
+  document.getElementById("raw").textContent = log.join("\n");
+})();
+
+function copyReport(){
+  const t = document.getElementById("raw").textContent;
+  navigator.clipboard.writeText(t).then(
+    ()=>alert("Report copied — paste it into the chat."),
+    ()=>alert("Copy failed. Select the text at the bottom manually.")
+  );
+}
+async function nuke(){
+  if("serviceWorker" in navigator){
+    for(const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+  }
+  if("caches" in window){ for(const k of await caches.keys()) await caches.delete(k); }
+  alert("Cleared. Now open index.html, let it load fully, then re-run this check.");
+}
+</script>
+</body>
+</html>
