@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0e11">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fireground">
+<title>Fireground · Richmond F&amp;EMS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d0e11'/%3E%3Cpath d='M16 5c2 4-2 5-1 8 3-1 3-4 3-4 3 3 4 6 4 9a6 6 0 1 1-12 0c0-3 2-5 3-7 0 2 1 3 2 3-1-3 1-6-2-9z' fill='%23e23b3b'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0d0e11; --bg2:#121419; --card:#171a21; --card2:#1d2129;
+    --line:#262b34; --line2:#323844;
+    --ink:#eef0f3; --dim:#9aa1ad; --faint:#6b7280;
+    --red:#e23b3b; --red-deep:#b3122a;
+    --hi:#c6f53a;
+    --engine:#f3a73c; --truck:#42a5ff; --command:#ef5d6b; --support:#34c694;
+    --disp:'Arial Narrow','Roboto Condensed','Helvetica Neue Condensed',system-ui,sans-serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+    --mono:'Roboto Mono','SFMono-Regular',Consolas,'Liberation Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);}
+  body{font-size:15px;line-height:1.45;}
+  .wrap{max-width:580px;margin:0 auto;min-height:100vh;background:var(--bg);}
+
+  /* ---------- Header ---------- */
+  header{position:sticky;top:0;z-index:30;background:linear-gradient(180deg,#15171d,#0f1115);
+    border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top);}
+  .chev{height:9px;background:repeating-linear-gradient(135deg,var(--red) 0 16px,var(--hi) 16px 32px);opacity:.92;}
+  .head-in{padding:11px 16px 12px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+  .title{font-family:var(--disp);font-weight:700;font-size:27px;letter-spacing:.06em;line-height:.95;}
+  .title .b{color:var(--red);}
+  .sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--dim);text-transform:uppercase;margin-top:3px;}
+  .badge{font-family:var(--mono);font-size:10px;color:var(--faint);border:1px solid var(--line2);border-radius:5px;padding:3px 7px;white-space:nowrap;}
+  .hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none;}
+  .wake{display:none;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--faint);background:var(--card2);border:1px solid var(--line2);
+    border-radius:5px;padding:4px 8px;cursor:pointer;white-space:nowrap;}
+  .wake.avail{display:inline-flex;}
+  .wake .led{width:7px;height:7px;border-radius:50%;background:var(--line2);flex:none;transition:background .18s,box-shadow .18s;}
+  .wake[aria-pressed="true"]{color:var(--hi);border-color:rgba(198,245,58,.45);}
+  .wake[aria-pressed="true"] .led{background:var(--hi);box-shadow:0 0 7px rgba(198,245,58,.85);}
+  .wake:focus-visible{outline:2px solid var(--hi);outline-offset:2px;}
+
+  /* ---------- Tabs ---------- */
+  nav{position:sticky;top:calc(env(safe-area-inset-top));z-index:20;}
+  .tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent 100%);
+            mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent 100%);}
+  .tabs.at-end{-webkit-mask-image:none;mask-image:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex:1 0 auto;min-width:74px;border:0;background:transparent;color:var(--dim);
+    font-family:var(--disp);font-weight:600;font-size:15.5px;letter-spacing:.03em;text-transform:uppercase;
+    padding:13px 10px 11px;cursor:pointer;position:relative;border-bottom:3px solid transparent;white-space:nowrap;}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--hi);}
+  .tab:focus-visible{outline:2px solid var(--hi);outline-offset:-3px;}
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 16px;background:var(--bg);border-bottom:1px solid var(--line);}
+  .legend{display:flex;flex-wrap:wrap;gap:9px 12px;font-family:var(--mono);font-size:10px;color:var(--dim);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.03em;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .expand{border:1px solid var(--line2);background:var(--card2);color:var(--ink);
+    font-family:var(--mono);font-size:11px;padding:6px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;}
+  .expand:active{background:var(--card);}
+  .expand:focus-visible{outline:2px solid var(--hi);outline-offset:2px;}
+
+  /* ---------- Panels ---------- */
+  .panel{display:none;padding:12px 14px 40px;}
+  .panel.active{display:block;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--red);
+    border-radius:8px;padding:10px 12px;font-size:13px;color:var(--dim);margin:2px 0 12px;}
+  .note b{color:var(--ink);font-weight:600;}
+
+  /* ---------- Accordion ---------- */
+  .acc{background:var(--card);border:1px solid var(--line);border-radius:9px;margin-bottom:8px;overflow:hidden;
+    border-left:4px solid var(--line2);}
+  .acc[data-type="engine"]{border-left-color:var(--engine);}
+  .acc[data-type="truck"]{border-left-color:var(--truck);}
+  .acc[data-type="command"]{border-left-color:var(--command);}
+  .acc[data-type="support"]{border-left-color:var(--support);}
+  .acc-head{width:100%;display:flex;align-items:center;gap:11px;background:transparent;border:0;color:var(--ink);
+    text-align:left;cursor:pointer;padding:14px 14px;min-height:54px;}
+  .acc-head:focus-visible{outline:2px solid var(--hi);outline-offset:-3px;}
+  .tag{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.05em;color:var(--bg);
+    padding:3px 6px;border-radius:4px;text-transform:uppercase;flex:none;}
+  .acc[data-type="engine"] .tag{background:var(--engine);}
+  .acc[data-type="truck"] .tag{background:var(--truck);}
+  .acc[data-type="command"] .tag{background:var(--command);}
+  .acc[data-type="support"] .tag{background:var(--support);}
+  .pos{font-family:var(--disp);font-weight:600;font-size:18.5px;letter-spacing:.02em;flex:1;line-height:1.05;}
+  .pos small{display:block;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.02em;margin-top:2px;text-transform:uppercase;}
+  .pm{font-family:var(--mono);font-size:20px;color:var(--faint);flex:none;transition:transform .2s ease;line-height:1;}
+  .acc.open .pm{transform:rotate(45deg);color:var(--hi);}
+  .acc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .22s ease;}
+  .acc.open .acc-body{grid-template-rows:1fr;}
+  .acc-body > div{overflow:hidden;}
+  ul.tasks{list-style:none;margin:0;padding:2px 14px 14px 14px;}
+  ul.tasks li{position:relative;padding:6px 0 6px 17px;font-size:14.5px;border-top:1px solid var(--line);}
+  ul.tasks li:first-child{border-top:0;}
+  ul.tasks li::before{content:"";position:absolute;left:2px;top:13px;width:5px;height:5px;border-radius:50%;background:var(--line2);}
+  .tasks code{font-family:var(--mono);font-size:.86em;color:var(--hi);background:rgba(198,245,58,.08);padding:1px 4px;border-radius:3px;}
+  .tasks .side{color:#cdd2da;font-weight:600;}
+
+  .firstflag{margin:2px 14px 14px;border:1px solid rgba(198,245,58,.32);background:rgba(198,245,58,.06);
+    border-radius:8px;padding:10px 12px;}
+  .firstflag .ttl{font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:.05em;color:var(--hi);text-transform:uppercase;margin-bottom:6px;}
+  .firstflag .seq{font-size:13.5px;color:#dfe3e8;}
+  .firstflag .seq b{color:#fff;font-weight:600;}
+
+  /* ---------- Quick Ref grid ---------- */
+  .grid{display:grid;gap:9px;}
+  .qc{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:12px 13px;}
+  .qc h3{font-family:var(--disp);font-weight:600;font-size:16px;letter-spacing:.04em;text-transform:uppercase;
+    margin:0 0 8px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+  .qc h3 .k{font-family:var(--mono);font-size:11px;color:var(--red);border:1px solid var(--red-deep);border-radius:4px;padding:2px 6px;letter-spacing:.05em;}
+  .mn{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:13.5px;}
+  .mn dt{font-family:var(--mono);font-weight:600;color:var(--hi);text-align:right;}
+  .mn dd{margin:0;color:var(--dim);}
+  .mn dd b{color:var(--ink);font-weight:600;}
+  .qc p{margin:0 0 6px;font-size:13.5px;color:var(--dim);}
+  .qc p:last-child{margin-bottom:0;}
+  .qc p b{color:var(--ink);}
+  .qc.warn{border-left:4px solid var(--red);}
+  .qc.warn h3{color:#ffd9d9;}
+  .qc .cav{margin-top:8px;color:var(--faint);font-size:11.5px;}
+  .stack{display:grid;gap:3px 10px;grid-template-columns:auto 1fr;font-size:13.5px;}
+  .stack dt{font-family:var(--mono);font-size:10.5px;color:var(--hi);letter-spacing:.03em;text-align:right;padding-top:2px;}
+  .stack dd{margin:0;color:var(--dim);}
+  .stack dd b{color:var(--ink);font-weight:600;}
+  .preref{margin-bottom:14px;}
+  .preref .grid{gap:9px;}
+  .preref .hdr{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.07em;
+    color:var(--faint);text-transform:uppercase;margin:0 2px 7px;}
+  .qc .lead{font-family:var(--mono);font-size:11px;color:var(--hi);letter-spacing:.04em;text-transform:uppercase;}
+  .chk{list-style:none;margin:0;padding:0;font-size:13.5px;color:var(--dim);}
+  .chk li{padding:4px 0 4px 18px;position:relative;}
+  .chk li::before{content:"›";position:absolute;left:3px;color:var(--red);font-weight:700;}
+
+  /* sides diagram */
+  .sides{display:grid;grid-template-columns:1fr 1.4fr 1fr;grid-template-rows:auto 1fr auto;gap:5px;margin-top:4px;text-align:center;}
+  .sides .lab{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.06em;align-self:center;justify-self:center;}
+  .sides .core{grid-column:2;grid-row:2;border:2px dashed var(--line2);border-radius:6px;min-height:62px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
+  .sides .core .struct{font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:.08em;}
+  .sides .core .turn{font-family:var(--mono);font-size:9px;color:var(--dim);}
+  .s-a{grid-column:2;grid-row:1;color:var(--hi);}
+  .s-c{grid-column:2;grid-row:3;color:var(--dim);}
+  .s-b{grid-column:1;grid-row:2;color:var(--dim);}
+  .s-d{grid-column:3;grid-row:2;color:var(--dim);}
+
+  footer{padding:18px 16px calc(28px + env(safe-area-inset-bottom));border-top:1px solid var(--line);
+    font-size:11px;color:var(--faint);line-height:1.5;}
+  footer b{color:var(--dim);font-weight:600;}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="chev"></div>
+    <div class="head-in">
+      <div>
+        <div class="title"><span class="b">FIRE</span>GROUND</div>
+        <div class="sub">Richmond F&amp;EMS · first-alarm assignments</div>
+      </div>
+      <div class="hdr-right">
+        <div class="badge">PPG 380 · 416</div>
+        <button class="wake" id="wakeBtn" type="button" aria-pressed="false"
+                title="Keep the screen awake while this is open">
+          <span class="led" aria-hidden="true"></span><span id="wakeTxt">Stay awake</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <div class="tabs" role="tablist" aria-label="Occupancy type">
+      <button class="tab" role="tab" aria-selected="true"  data-tab="dwelling">Dwelling</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="apartment">Apartment</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="commercial">Commercial</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="highrise">Hi-Rise</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="ref">Quick Ref</button>
+    </div>
+  </nav>
+
+  <div class="toolbar" id="toolbar">
+    <div class="legend" aria-hidden="true">
+      <span><i class="dot" style="background:var(--engine)"></i>Engine</span>
+      <span><i class="dot" style="background:var(--truck)"></i>Truck</span>
+      <span><i class="dot" style="background:var(--command)"></i>Command</span>
+      <span><i class="dot" style="background:var(--support)"></i>Support</span>
+    </div>
+    <button class="expand" id="expandBtn">Expand all</button>
+  </div>
+
+  <main>
+    <section class="panel active" id="dwelling" role="tabpanel"></section>
+    <section class="panel" id="apartment" role="tabpanel"></section>
+    <section class="panel" id="commercial" role="tabpanel"></section>
+    <section class="panel" id="highrise" role="tabpanel"></section>
+    <section class="panel" id="ref" role="tabpanel"></section>
+  </main>
+
+  <footer>
+    Dwelling / Apartment / Commercial condensed from City of Richmond PPG <b>380 / 380.1 / 380.2</b> &amp; the Fireground Operations
+    Supplemental Manual (March 2019). Hi-Rise condensed from PPG <b>416</b> (revision date unverified).
+    Quick-reference only — <b>IC orders and current department policy always govern.</b> Verify against your own training, especially Mayday/LUNAR.
+  </footer>
+</div>
+
+<script>
+/* Shared first-on-scene command sequence (identical for 1st-due engine & truck) */
+const FIRST = "<b>On-scene report</b> → establish command → <b>360°</b> (view as many sides as practical) → situation report → declare <b>working fire</b> → state mode (<b>offensive / defensive / investigative</b>). Flag transfer of command to the 1st-due BC when a tactical role is needed.";
+
+/* RIC gear + 5th-due engine reused across occupancies */
+const RIC = ["Assume RIC — stage so you don't block access","Stage gear: RIC bag, irons, saws, ladders, stokes, TIC","360° lap for familiarization","Monitor conditions · report to IC · stay ready"];
+const E5  = ["Go to the 3rd-due engine's water source","Finish split / reverse lay if needed","Pump to 3rd due if a secondary source is needed","Officer → ICP for accountability","Remaining FFs → preliminary exposure reduction"];
+const BC1 = ["Own size-up · build / implement strategy","Confirm the 360° is done (assign it if not)","Formal transfer of command — face-to-face preferred","Set ICP: view of 2 sides, outside the IDLH — announce it","ICS vests at the ICP · maintain accountability"];
+const BC2 = ["Report to the ICP · full PPE + SCBA","Duties assigned by IC"];
+const ISO = ["Report to ICP · ICS vest, PPE, SCBA","Identify / correct / communicate hazards","Stop unsafe acts · report injuries to IC","Confirm rehab + exposure reduction before anyone returns to service"];
+const MED = ["Position with clear egress for transport","Stage gear for rapid patient access","Canvas bystanders for victims","Run rehab with ISO + Air Light"];
+const AIR = ["Respond non-emergency unless directed","Stage clear of access · near Medic for rehab","Announce arrival + location","Swap SCBA bottles <code>1:1</code>","Lights as assigned · snacks + fluids"];
+
+/* ===== HIGH-RISE (PPG 416) — these override the PPG 380 constants above ===== */
+const FIRST_HR = "<b>View as much of the structure as possible on approach</b> → brief initial report → establish command → situation report → state mode (<b>offensive / defensive / investigative</b>). Any indication of fire → <b>declare a working fire and request the 2nd AND 3rd alarms immediately</b>.";
+
+const RIC_HR = ["Assume RIC — position apparatus clear of access","Fire <b>above grade</b>: stage <b>1 floor below</b> the fire floor","Fire <b>below grade</b>: stage outside the IDLH, close to the fire floor — <b>not below it</b>","Bring minimum: RIC bag, hand lights, TIC, forcible entry tools, portable radios, search rope, EMS gear","Report to the <b>Fire Branch Director</b> when established"];
+const BC1_HR = ["Own size-up · build / implement strategy","View as much of the structure as possible on approach","Formal transfer of command with strategic + tactical goals — <b>face-to-face is unlikely</b>","Set ICP with a view of 2 sides, outside the IDLH — announce it by radio","<b>Stay clear of potential falling debris</b>","ICS vests + PPE at the ICP · maintain accountability throughout","Support Branch Director sets staging if 2 floors below isn't practical","IC determines the location of <b>Base</b> for units beyond the 2nd alarm"];
+const BC2_HR = ["Ensure a 360° evaluation has been completed","Report to the <b>floor below the fire</b> — full PPE + SCBA","Assume <b>Fire Branch Director</b>: floor below, fire floor(s), floor above","Unless assigned another function by the IC"];
+const ISO_HR = ["Complete a 360° evaluation on arrival → report findings to IC","Report to the ICP for updates + assignment · ICS vest, PPE, SCBA","Identify / correct / communicate hazards","Stop unsafe acts · report injuries to IC","<b>Assign an Assistant Safety Officer with the Fire Branch</b> when possible","Confirm rehab + exposure reduction before anyone returns to service"];
+
+const HR_PRE = `
+<div class="preref">
+  <div class="hdr">Before the assignments</div>
+  <div class="grid">
+
+    <div class="qc warn">
+      <h3>Elevators <span class="k">CRITICAL</span></h3>
+      <ul class="chk">
+        <li><b>Never</b> for fires on the <b>7th floor and below</b></li>
+        <li>Check the shaft for smoke, fire, water <b>before</b> use</li>
+        <li>No Phase I <i>and</i> Phase II capability → <b>do not use</b></li>
+        <li>Ascend with proper equipment · <b>exit two floors below the fire</b></li>
+        <li>Stop and check operation at least once per ascent — recheck the shaft</li>
+        <li><b>Never travel more than 10 floors</b> without a safety stop</li>
+      </ul>
+    </div>
+
+    <div class="qc">
+      <h3>Command Branches</h3>
+      <dl class="stack">
+        <dt>IC</dt><dd><b>1st due BC</b> — takes command ASAP, holds it until relieved by the <b>Assistant Chief</b> on the 2nd alarm</dd>
+        <dt>OPS</dt><dd><b>1st due BC</b> transitions to Operations Section Chief once the AC assumes command</dd>
+        <dt>FIRE</dt><dd><b>2nd due BC</b> → floor below the fire. Owns floor below, fire floor(s), floor above</dd>
+        <dt>UPPER</dt><dd><b>3rd due BC</b> → a clean floor above the fire. Owns two floors above and up, incl. the roof</dd>
+        <dt>SUPPORT</dt><dd><b>4th due BC</b> — two floors below the fire and down, incl. lobby and basements</dd>
+      </dl>
+      <p class="cav">All companies report to the IC until a branch is <b>verbally announced over the radio</b>; the Branch Director then states who reports to them. Tasks not assigned or communicated are <b>freelancing</b>. Any deviation from policy must be communicated to the IC.</p>
+    </div>
+
+    <div class="qc">
+      <h3>Alarm Assignment</h3>
+      <dl class="stack">
+        <dt>1ST</dt><dd><b>6 Engines · 2 Trucks · 2 BCs · 1 Safety · 1 Medic</b></dd>
+        <dt>W/F</dt><dd>Air Light on the working fire declaration</dd>
+        <dt>2ND</dt><dd>3 Engines · 1 Truck · 1 BC · <b>1 Assistant Chief</b></dd>
+        <dt>3-7</dt><dd>3 Engines · 1 Truck · 1 BC</dd>
+      </dl>
+      <p style="margin-top:8px">Every first-alarm engine <b>except RIC</b> brings <b>all sections of high-rise hose and the standpipe kit</b>.</p>
+      <p class="cav">PPG 416 as provided does not define the high-rise threshold — use the department's definition.</p>
+    </div>
+
+    <div class="qc">
+      <h3>Staging &amp; Base</h3>
+      <p><b>Staging</b> — two floors below the confirmed fire floor unless the IC or Support Branch Director directs otherwise.</p>
+      <p>2nd alarm companies report to staging with <b>full PPE, SCBA, tools, extra air cylinders</b>. The <b>7th due engine officer</b> is the initial Staging Area Manager.</p>
+      <p style="margin-top:8px"><b>Base</b> — exterior ICS facility for <b>3rd alarm</b> and beyond, located by the IC. The first 3rd-alarm engine officer is <b>Base Area Manager</b>.</p>
+    </div>
+
+  </div>
+</div>`;
+
+const DATA = {
+  dwelling: { positions:[
+    {pos:"1st Due Engine", tag:"E1", type:"engine", first:true, tasks:[
+      "Water source + layout (<span class='side'>forward / split / reverse</span>) — announce ASAP",
+      "Lay primary supply line · own source if <code>≤100 ft</code> (announce)",
+      "<span class='side'>Stop short / pull past</span> — leave the front for the truck",
+      "Deploy initial attack line / master stream"]},
+    {pos:"2nd Due Engine", tag:"E2", type:"engine", tasks:[
+      "Go to the 1st-due engine's water source",
+      "Finish split / reverse lay if needed",
+      "Pump to 1st due — <b>lock in continuous supply first</b>",
+      "Ensure the initial line advances · chase kinks",
+      "Deploy 2nd attack line / master stream",
+      "Coordinate attack with 1st due"]},
+    {pos:"3rd Due Engine", tag:"E3", type:"engine", tasks:[
+      "Secondary water source + layout — announce ASAP",
+      "Lay secondary supply line · own source if <code>≤100 ft</code>",
+      "Position <span class='side'>Charlie / opposite</span> (mind the 2nd-due truck)",
+      "Visual inspection of <span class='side'>Charlie</span> side → report to IC",
+      "Check immediate exposures → report to IC"]},
+    {pos:"4th Due Engine", tag:"RIC", type:"engine", sub:"Rapid Intervention", tasks:RIC},
+    {pos:"5th Due Engine", tag:"E5", type:"engine", tasks:E5},
+    {pos:"1st Due Truck", tag:"T1", type:"truck", first:true, tasks:[
+      "Position <span class='side'>Alpha / involved side</span> — announce",
+      "Split crew: <b>Interior</b> = Officer + Bravo · <b>Exterior</b> = Driver + Charlie",
+      "<b>Interior:</b> primary search · interior vent · interior utilities · assist attack",
+      "<b>Exterior:</b> force entry · ladder (aerial/ground) · vent · exterior utilities · lighting",
+      "Large / complex incident: may keep crew together — announce"]},
+    {pos:"2nd Due Truck", tag:"T2", type:"truck", tasks:[
+      "Position <span class='side'>Charlie / opposite</span> the 1st-due truck — announce arrival + location",
+      "<b>Interior</b> (Officer + Bravo): secondary search · assist 1st due",
+      "<b>Exterior</b> (Driver + Charlie): assist 1st due",
+      "Complement the 1st-due truck's tactic — cover what they don't"]},
+    {pos:"1st Due Battalion Chief", tag:"BC", type:"command", tasks:BC1},
+    {pos:"2nd Due Battalion Chief", tag:"BC", type:"command", tasks:BC2},
+    {pos:"Incident Safety Officer", tag:"ISO", type:"command", tasks:ISO},
+    {pos:"Medic Unit", tag:"EMS", type:"support", tasks:MED},
+    {pos:"Air Light", tag:"AIR", type:"support", tasks:AIR}
+  ]},
+
+  apartment: { note:"<b>Non-highrise apartment</b> — garden style, lofts, mid-rise. Same backbone as a dwelling; the deltas are <b>standpipe / FDC</b> and trucks more often staying together.", positions:[
+    {pos:"1st Due Engine", tag:"E1", type:"engine", first:true, tasks:[
+      "Water source + layout — announce ASAP (even on standpipe)",
+      "Lay primary supply line · own source if <code>≤100 ft</code>",
+      "Position near the <b>FDC</b> if standpipe ops are known",
+      "<span class='side'>Stop short / pull past</span> — leave the front for the truck",
+      "Deploy initial line — <b>announce method</b> (pre-connect / standpipe / rope-stretch / leader)",
+      "Standpipe: connect dual <code>2½\"</code> to FDC · supplied by 2nd due",
+      "Not at the FDC? Announce so the 3rd due covers it"]},
+    {pos:"2nd Due Engine", tag:"E2", type:"engine", tasks:[
+      "Go to the 1st-due engine's water source",
+      "Finish split / reverse lay if needed",
+      "Pump to 1st due regardless of attack method — <b>supply first</b>",
+      "May also supply the FDC if it won't starve 1st due — announce",
+      "Assist the initial line / standpipe stretch",
+      "Deploy 2nd line / master stream"]},
+    {pos:"3rd Due Engine", tag:"E3", type:"engine", tasks:[
+      "Secondary water source + layout — announce ASAP",
+      "Lay secondary supply line · own source if <code>≤100 ft</code>",
+      "<b>Supply the FDC</b> if 1st / 2nd haven't",
+      "Position <span class='side'>Charlie / opposite</span> (mind the 2nd-due truck)",
+      "Visual inspection of <span class='side'>Charlie</span> → report to IC",
+      "Check immediate exposures → report to IC"]},
+    {pos:"4th Due Engine", tag:"RIC", type:"engine", sub:"Rapid Intervention", tasks:RIC},
+    {pos:"5th Due Engine", tag:"E5", type:"engine", tasks:E5},
+    {pos:"1st Due Truck", tag:"T1", type:"truck", first:true, tasks:[
+      "Position in front of the involved area — aerial roof access / ladders / master stream",
+      "Officer: <b>consider keeping crew together</b> (bigger / complex building)",
+      "Force entry · primary search · ladder · vent · secure utilities"]},
+    {pos:"2nd Due Truck", tag:"T2", type:"truck", tasks:[
+      "Position <span class='side'>Charlie / opposite</span> the 1st-due truck — announce",
+      "1st due likely keeps crew together — coordinate to complement",
+      "Secondary search · assist 1st due"]},
+    {pos:"1st Due Battalion Chief", tag:"BC", type:"command", tasks:BC1},
+    {pos:"2nd Due Battalion Chief", tag:"BC", type:"command", tasks:BC2},
+    {pos:"Incident Safety Officer", tag:"ISO", type:"command", tasks:ISO},
+    {pos:"Medic Unit", tag:"EMS", type:"support", tasks:MED},
+    {pos:"Air Light", tag:"AIR", type:"support", tasks:AIR}
+  ]},
+
+  commercial: { note:"<b>Commercial</b> — strip mall, big-box, office, mercantile. Constant size-up + <b>risk / benefit</b> (stability, life hazard, exposures). Big-box → consider a <b>2nd alarm early</b>.", positions:[
+    {pos:"1st Due Engine", tag:"E1", type:"engine", first:true, tasks:[
+      "Water source + layout — announce ASAP",
+      "Lay primary supply line · own source if <code>≤100 ft</code>",
+      "Position near the <b>FDC</b> if standpipe ops are known",
+      "<span class='side'>Stop short / pull past</span> — leave the front for the truck",
+      "Deploy initial line — <b>announce method</b> (pre-connect / standpipe / rope-stretch / leader)",
+      "Standpipe: connect dual <code>2½\"</code> to FDC · supplied by 2nd due",
+      "Not at the FDC? Announce so the 3rd due covers it"]},
+    {pos:"2nd Due Engine", tag:"E2", type:"engine", tasks:[
+      "Go to the 1st-due engine's water source",
+      "Pump to 1st due regardless of attack method — <b>supply first</b>",
+      "May also supply the FDC if it won't starve 1st due",
+      "2nd line should <b>match or beat</b> the initial line's flow",
+      "Reach the initial line — or be able to push past it"]},
+    {pos:"3rd Due Engine", tag:"E3", type:"engine", tasks:[
+      "Secondary water source + layout — announce",
+      "<b>Supply the FDC</b> if 1st / 2nd haven't",
+      "Position <span class='side'>Charlie / opposite</span> (mind the 2nd-due truck)",
+      "Visual inspection of <span class='side'>Charlie</span> → report to IC",
+      "Strip mall: <b>no required fire separations</b> — check both-side exposures early for horizontal extension"]},
+    {pos:"4th Due Engine", tag:"RIC", type:"engine", sub:"Rapid Intervention", tasks:RIC},
+    {pos:"5th Due Engine", tag:"E5", type:"engine", tasks:E5},
+    {pos:"1st Due Truck", tag:"T1", type:"truck", first:true, tasks:[
+      "Position in front of the involved area — aerial / ladders / master stream",
+      "Officer: <b>consider keeping crew together</b> (size / complexity)",
+      "<b>Early roof laddering</b> — ready route to assess above the fire",
+      "Force entry · primary search · vent · secure utilities"]},
+    {pos:"2nd Due Truck", tag:"T2", type:"truck", tasks:[
+      "Position <span class='side'>Charlie / opposite</span> the 1st-due truck — announce",
+      "1st due likely keeps crew together — coordinate to complement",
+      "Secondary search · assist 1st due"]},
+    {pos:"1st Due Battalion Chief", tag:"BC", type:"command", tasks:BC1},
+    {pos:"2nd Due Battalion Chief", tag:"BC", type:"command", tasks:BC2},
+    {pos:"Incident Safety Officer", tag:"ISO", type:"command", tasks:ISO},
+    {pos:"Medic Unit", tag:"EMS", type:"support", tasks:MED},
+    {pos:"Air Light", tag:"AIR", type:"support", tasks:AIR}
+  ]},
+
+  highrise: { first:FIRST_HR, pre:HR_PRE,
+    note:"<b>High-rise · PPG 416</b> — 6 engines deep, elevator-dependent, branch command. Any indication of fire → <b>working fire + 2nd AND 3rd alarms immediately</b>.", positions:[
+    {pos:"1st Due Engine", tag:"E1", type:"engine", first:true, tasks:[
+      "Position clear of access for incoming companies",
+      "Fire alarm panel accessible at the entrance / lobby? Check it — <b>confirm the lowest level indicated</b>",
+      "Determine the number of floors · <b>identify and announce the fire floor ASAP</b>",
+      "<b>Entire crew</b> to the fire floor for investigation / attack",
+      "Team with the 2nd due to get the <b>first line in place on the fire floor</b>, then advance as a team",
+      "Communicate all actions, findings, tactical priorities",
+      "Report to the <b>Fire Branch Director</b> when established"]},
+    {pos:"2nd Due Engine", tag:"E2", type:"engine", tasks:[
+      "Establish water supply — <b>hydrant to the FDC</b> · Driver stays with the engine",
+      "Need help with the FDC connection? Radio the <b>5th due Driver</b>",
+      "Crew minus Driver → fire floor · team with 1st due on the initial attack line",
+      "Driver + 5th due Driver: <b>relay operation</b> for fires on the <code>15th floor</code> or higher",
+      "Responding in an <b>FRV</b>? Identify a Class A pumper to position near the system and pump the FDC",
+      "Report to the <b>Fire Branch Director</b> when established"]},
+    {pos:"3rd Due Engine", tag:"LOB", type:"engine", sub:"Lobby Control", tasks:[
+      "Visual inspection of <span class='side'>Charlie</span> / opposite the attack when possible → report to IC",
+      "Position clear of access for incoming companies",
+      "<b>Crew assumes Lobby Control</b>",
+      "<b>Driver = elevator operator</b>, stays with the elevator for the duration · elevators OOS → join the crew on Lobby Control",
+      "Officer = initial Lobby Control unit leader · direct companies to assignments · <b>account for everyone entering the stairwell or elevator</b>",
+      "Obtain keys · gain access and control of building systems (elevators, panel, fire pump, sprinklers, HVAC, utilities)",
+      "Report to the <b>Support Branch Director</b> when established"]},
+    {pos:"4th Due Engine", tag:"RIC", type:"engine", sub:"Rapid Intervention", tasks:RIC_HR},
+    {pos:"5th Due Engine", tag:"E5", type:"engine", tasks:[
+      "<b>Second</b> water supply — hydrant to a <b>second FDC</b> whenever the building has more than one",
+      "Driver: confirm the 2nd due made its hydrant <b>and</b> FDC first, then stay with your engine",
+      "<b>Officer → Command Post</b> · assist the IC with accountability and communications",
+      "Remaining two FFs → team with the 6th due on the <b>floor above the fire</b>",
+      "Driver + 2nd due Driver: relay operation for fires on the <code>15th floor</code> or higher",
+      "Report to the <b>Fire Branch Director</b> when established"]},
+    {pos:"6th Due Engine", tag:"E6", type:"engine", tasks:[
+      "Team with the two remaining firefighters from the 5th due",
+      "<b>Floor above the fire</b> — check for extension",
+      "Be prepared to deploy an additional attack line",
+      "Report to the <b>Fire Branch Director</b> when established"]},
+    {pos:"1st Due Truck", tag:"T1", type:"truck", first:true, tasks:[
+      "Position on the <span class='side'>involved side</span> where the <b>aerial can be used</b> if needed",
+      "Officer + crew → <b>fire floor</b>: locate the fire · primary search · forcible entry · check extension · salvage / overhaul",
+      "Smoke, fire or victims within aerial reach → <b>Driver stays</b> and coordinates aerial ops with the IC",
+      "No indication the aerial will be used → <b>Driver reports to the fire floor</b> with the crew"]},
+    {pos:"2nd Due Truck", tag:"T2", type:"truck", tasks:[
+      "Position based on incident needs and available access",
+      "Officer + crew (less Driver) → <b>floor above the fire</b> · check for victims, smoke and fire conditions",
+      "Next priorities: <b>stairwells</b>, then the <b>top floor</b>",
+      "Smoke, fire or victims within aerial reach → Driver stays and coordinates aerial ops with the IC",
+      "No aerial indication → Driver prepares <b>PPV fans</b> for initial ventilation per incident priorities"]},
+    {pos:"1st Due Battalion Chief", tag:"BC", type:"command", sub:"Incident Commander", tasks:BC1_HR},
+    {pos:"2nd Due Battalion Chief", tag:"BC", type:"command", sub:"Fire Branch Director", tasks:BC2_HR},
+    {pos:"Incident Safety Officer", tag:"ISO", type:"command", tasks:ISO_HR},
+    {pos:"Medic Unit", tag:"EMS", type:"support", tasks:MED}
+  ]}
+};
+
+/* ---------- Render apparatus panels ---------- */
+function renderOcc(id){
+  const occ = DATA[id];
+  const el = document.getElementById(id);
+  let html = occ.note ? `<div class="note">${occ.note}</div>` : "";
+  html += occ.pre || "";
+  const firstTxt = occ.first || FIRST;
+  occ.positions.forEach((p,i)=>{
+    const lis = p.tasks.map(t=>`<li>${t}</li>`).join("");
+    const firstBlock = p.first
+      ? `<div class="firstflag"><div class="ttl">▲ If first on scene</div><div class="seq">${firstTxt}</div></div>` : "";
+    html += `
+    <div class="acc" data-type="${p.type}">
+      <button class="acc-head" aria-expanded="false">
+        <span class="tag">${p.tag}</span>
+        <span class="pos">${p.pos}${p.sub?`<small>${p.sub}</small>`:""}</span>
+        <span class="pm">+</span>
+      </button>
+      <div class="acc-body"><div>
+        <ul class="tasks">${lis}</ul>
+        ${firstBlock}
+      </div></div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+["dwelling","apartment","commercial","highrise"].forEach(renderOcc);
+
+/* ---------- Quick Ref ---------- */
+document.getElementById("ref").innerHTML = `
+<div class="grid">
+
+  <div class="qc">
+    <h3>Building Sides</h3>
+    <div class="sides">
+      <div class="lab s-a">ALPHA</div>
+      <div class="lab s-b">BRAVO</div>
+      <div class="core"><span class="struct">STRUCTURE</span><span class="turn">clockwise →</span></div>
+      <div class="lab s-d">DELTA</div>
+      <div class="lab s-c">CHARLIE</div>
+    </div>
+    <p style="margin-top:8px"><b>Alpha</b> front · <b>Bravo</b> left · <b>Charlie</b> rear · <b>Delta</b> right — clockwise from the front.</p>
+  </div>
+
+  <div class="qc">
+    <h3>Size-Up <span class="k">WALLACE WAS HOT</span></h3>
+    <dl class="mn">
+      <dt>W</dt><dd>Water</dd>
+      <dt>A</dt><dd>Area</dd>
+      <dt>L</dt><dd>Life</dd>
+      <dt>L</dt><dd>Location / extent</dd>
+      <dt>A</dt><dd>Apparatus / personnel</dd>
+      <dt>C</dt><dd>Construction</dd>
+      <dt>E</dt><dd>Exposures</dd>
+      <dt>W</dt><dd>Weather</dd>
+      <dt>A</dt><dd>Auxiliary appliances</dd>
+      <dt>S</dt><dd>Special hazards</dd>
+      <dt>H</dt><dd>Height</dd>
+      <dt>O</dt><dd>Occupancy</dd>
+      <dt>T</dt><dd>Time</dd>
+    </dl>
+  </div>
+
+  <div class="qc">
+    <h3>Strategy <span class="k">RECEO-VS</span></h3>
+    <dl class="mn">
+      <dt>R</dt><dd><b>Rescue</b></dd>
+      <dt>E</dt><dd><b>Exposure</b></dd>
+      <dt>C</dt><dd><b>Confinement</b></dd>
+      <dt>E</dt><dd><b>Extinguishment</b></dd>
+      <dt>O</dt><dd><b>Overhaul</b></dd>
+      <dt>V</dt><dd>Ventilation</dd>
+      <dt>S</dt><dd>Salvage</dd>
+    </dl>
+    <p style="margin-top:7px">First five in priority order · V &amp; S are opportunity-based, supporting the rest.</p>
+  </div>
+
+  <div class="qc">
+    <h3>Progress Report <span class="k">CAN</span></h3>
+    <dl class="mn">
+      <dt>C</dt><dd><b>Conditions</b> — what you're facing</dd>
+      <dt>A</dt><dd><b>Actions</b> — what you're doing</dd>
+      <dt>N</dt><dd><b>Needs</b> — support / resources</dd>
+    </dl>
+  </div>
+
+  <div class="qc">
+    <h3>Hose Lays</h3>
+    <p><b>Forward</b> — source → fire (wrap hydrant, proceed in)</p>
+    <p><b>Reverse</b> — fire → source (wrap object near attack engine, go to hydrant)</p>
+    <p><b>Split</b> — forward to a midpoint + reverse from there to the source</p>
+  </div>
+
+  <div class="qc">
+    <h3>Supply Pairing</h3>
+    <p class="lead">who pumps to whom</p>
+    <p><b>2nd due → 1st due</b> &nbsp;·&nbsp; <b>5th due → 3rd due</b></p>
+    <p>Establish your own source only when <code style="font-family:var(--mono);color:var(--hi)">≤100 ft</code> from the hydrant — and announce it.</p>
+  </div>
+
+  <div class="qc">
+    <h3>Operational Modes</h3>
+    <p><b>Offensive</b> — interior attack; life hazard or savable structure</p>
+    <p><b>Defensive</b> — exterior; building not savable, protect exposures</p>
+    <p><b>Investigative</b> — no obvious fire; stage, don't commit until IC says</p>
+  </div>
+
+  <div class="qc">
+    <h3>Initial On-Scene Report</h3>
+    <ul class="chk">
+      <li>Unit ID</li>
+      <li>Water source + layout type</li>
+      <li>Position — stop short / pulled past, which side</li>
+      <li>Conditions on arrival</li>
+      <li># of floors · occupancy type</li>
+      <li>Exposure concerns</li>
+    </ul>
+  </div>
+
+  <div class="qc">
+    <h3>Mayday <span class="k">LUNAR</span></h3>
+    <p class="lead">command first moves</p>
+    <ul class="chk">
+      <li>Acknowledge · deploy RIC to last known location</li>
+      <li>Tell dispatch · move ops to a new tac channel</li>
+      <li>Get LUNAR from the downed FF</li>
+      <li>Accountability of the Mayday crew · PAR check all</li>
+    </ul>
+    <dl class="mn" style="margin-top:8px">
+      <dt>L</dt><dd>Location</dd>
+      <dt>U</dt><dd>Unit</dd>
+      <dt>N</dt><dd>Name</dd>
+      <dt>A</dt><dd>Assignment / air</dd>
+      <dt>R</dt><dd>Resources needed</dd>
+    </dl>
+    <p style="margin-top:6px;color:var(--faint);font-size:11.5px">LUNAR letters are the common standard — confirm against your training.</p>
+  </div>
+
+  <div class="qc">
+    <h3>Two-In / Two-Out</h3>
+    <p>A <b>3-person</b> company <b>cannot</b> enter an IDLH without a 4th present — <b>wait for the next company</b>. Exception: an <b>obvious rescue</b>. (OSHA 1910.134(g))</p>
+  </div>
+
+  <div class="qc">
+    <h3>Collapse &amp; Aerial</h3>
+    <p>Collapse zone = <b>1.5 × building height</b> (100 ft → 150 ft). <b>Corners are safer.</b></p>
+    <p>Keep the aerial <code style="font-family:var(--mono);color:var(--hi)">≥10 ft</code> from energized wires, always.</p>
+  </div>
+
+  <div class="qc">
+    <h3>Backdraft Signs</h3>
+    <ul class="chk">
+      <li>Dense smoke, no flame, tight building</li>
+      <li>Black smoke pushing around door / window seams</li>
+      <li>Smoke-stained glass pulsating from pressure</li>
+      <li>Air pulling back in through openings</li>
+    </ul>
+  </div>
+
+  <div class="qc">
+    <h3>Radio · Split Crew</h3>
+    <p><b>Interior</b> keeps the company name — e.g. <code style="font-family:var(--mono);color:var(--hi)">Truck 2</code></p>
+    <p><b>Exterior</b> = company + <code style="font-family:var(--mono);color:var(--hi)">X-Ray</code>, led by the driver</p>
+    <p><b>Bravo</b> = Officer's side · <b>Charlie</b> = driver's side</p>
+  </div>
+
+</div>`;
+
+/* ---------- Tab strip scroll affordance ---------- */
+const tabStrip = document.querySelector(".tabs");
+function syncTabMask(){
+  const done = tabStrip.scrollLeft + tabStrip.clientWidth >= tabStrip.scrollWidth - 2;
+  tabStrip.classList.toggle("at-end", done);
+}
+tabStrip.addEventListener("scroll", syncTabMask, {passive:true});
+window.addEventListener("resize", syncTabMask);
+syncTabMask();
+
+/* ---------- Tab switching ---------- */
+const tabs = document.querySelectorAll(".tab");
+const panels = document.querySelectorAll(".panel");
+const toolbar = document.getElementById("toolbar");
+tabs.forEach(t=>{
+  t.addEventListener("click", ()=>{
+    tabs.forEach(x=>x.setAttribute("aria-selected","false"));
+    panels.forEach(p=>p.classList.remove("active"));
+    t.setAttribute("aria-selected","true");
+    const id = t.dataset.tab;
+    document.getElementById(id).classList.add("active");
+    toolbar.style.display = (id==="ref") ? "none" : "flex";
+    t.scrollIntoView({block:"nearest", inline:"nearest"});
+    window.scrollTo({top:0});
+  });
+});
+
+/* ---------- Accordion toggle (event delegation) ---------- */
+document.querySelectorAll(".panel").forEach(panel=>{
+  panel.addEventListener("click", e=>{
+    const head = e.target.closest(".acc-head");
+    if(!head) return;
+    const acc = head.parentElement;
+    const open = acc.classList.toggle("open");
+    head.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+});
+
+/* ---------- Expand / collapse all ---------- */
+let allOpen = false;
+const expandBtn = document.getElementById("expandBtn");
+expandBtn.addEventListener("click", ()=>{
+  allOpen = !allOpen;
+  const active = document.querySelector(".panel.active");
+  active.querySelectorAll(".acc").forEach(a=>{
+    a.classList.toggle("open", allOpen);
+    a.querySelector(".acc-head").setAttribute("aria-expanded", allOpen?"true":"false");
+  });
+  expandBtn.textContent = allOpen ? "Collapse all" : "Expand all";
+});
+
+/* ---------- Offline install (service worker) ---------- */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(e => console.warn("SW failed:", e));
+  });
+}
+
+/* ---------- Screen wake lock ---------- */
+(() => {
+  const btn = document.getElementById("wakeBtn");
+  const txt = document.getElementById("wakeTxt");
+  if (!("wakeLock" in navigator)) return;      // stays hidden where unsupported
+  btn.classList.add("avail");
+
+  let lock = null, want = false;
+
+  const paint = () => {
+    const on = !!lock;
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    txt.textContent = on ? "Awake" : "Stay awake";
+  };
+
+  async function acquire() {
+    try {
+      lock = await navigator.wakeLock.request("screen");
+      lock.addEventListener("release", () => { lock = null; paint(); });
+    } catch (e) {
+      lock = null; want = false;
+      txt.textContent = "Unavailable";
+      setTimeout(paint, 1800);
+    }
+    paint();
+  }
+
+  function release() {
+    if (lock) { lock.release().catch(()=>{}); lock = null; }
+    paint();
+  }
+
+  btn.addEventListener("click", () => {
+    want = !want;
+    want ? acquire() : release();
+  });
+
+  // Android drops the lock whenever the tab is backgrounded — take it back.
+  document.addEventListener("visibilitychange", () => {
+    if (want && !lock && document.visibilityState === "visible") acquire();
+  });
+
+  paint();
+})();
+</script>
+</body>
+</html>
